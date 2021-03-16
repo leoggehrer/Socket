@@ -14,4 +14,17 @@ public abstract class Observable {
             observers.add(observer);
         }
     }
+    public synchronized void removeObserver(Observer observer) {
+        if (observer == null)
+            throw new IllegalArgumentException("observer");
+
+        if (observers.contains(observer)) {
+            observers.remove(observer);
+        }
+    }
+    protected synchronized void notifyAll(Object args) {
+        for (Observer observer : observers) {
+            observer.notify(this, args);
+        }
+    }
 }
