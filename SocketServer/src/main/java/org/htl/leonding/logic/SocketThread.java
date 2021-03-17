@@ -12,7 +12,7 @@ public class SocketThread extends Thread implements Observer {
     private final static String QuitCommand = "quit";
     private final static String Disconnected = "disconnected";
     private UUID id = null;
-    private final Socket socket;
+    private Socket socket;
     private ObjectInputStream ois = null;
     private ObjectOutputStream oos = null;
 
@@ -32,22 +32,50 @@ public class SocketThread extends Thread implements Observer {
 
     @Override
     public void run() {
+        boolean error = false;
         String command = "";
 
-        while (command.equals(QuitCommand) == false) {
+        while (error == false && command.equals(QuitCommand) == false) {
             try {
                 Message message = (Message)ois.readObject();
 
+                System.out.printf("%s\n", message.toString());
+
                 id = message.getId();
                 command = message.getCommand();
-                SocketContainer.getInstance().addMessage(message);
 
-                System.out.printf("%s\n", message.toString());
+                if (command.equals(QuitCommand)) {
+                    SocketContainer.getInstance().removeObserver(this);
+
+                    message.setCommand("disconnected");
+                    message.setFrom("Server");
+                    message.setBody("");
+                    synchronized (this) {
+                        oos.writeObject(message);
+                        oos.flush();
+                    }
+                }
+                else {
+                    message.setCommand("dispatch");
+                    SocketContainer.getInstance().addMessage(message);
+                }
             } catch (IOException e) {
+                error = true;
                 e.printStackTrace();
             } catch (ClassNotFoundException e) {
+                error = true;
                 e.printStackTrace();
             }
+        }
+        try {
+            oos.close();
+            oos = null;
+            ois.close();
+            ois = null;
+            socket.close();
+            socket = null;
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -58,8 +86,12 @@ public class SocketThread extends Thread implements Observer {
             UUID mId = message.getId();
 
             if (mId != null && id != null && id.equals(mId) == false) {
-                try {
-                    oos.writeObject(message);
+                try
+                {
+                    synchronized (this) {
+                        oos.writeObject(message);
+                        oos.flush();
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

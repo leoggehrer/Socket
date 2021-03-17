@@ -15,9 +15,9 @@ public class App
 {
     public static void main( String[] args )
     {
-        System.out.println( "SocketServer-App!" );
+        System.out.println( "SocketServer-App is running..." );
 
-        try (ServerSocket ss = new ServerSocket(3333)) {
+        try (ServerSocket ss = new ServerSocket(4444)) {
             while (true) {
                 Socket socket = ss.accept();
                 SocketThread socketThread = new SocketThread(socket);
